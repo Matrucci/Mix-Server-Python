@@ -6,6 +6,8 @@ import os
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
@@ -33,9 +35,11 @@ def buildMessage(messageLine):
     semetricKey = createSemetricKey(message[3], message[4])
     messageData = message[0]
     encryptedMessage = semetricKey.encrypt(messageData.encode())
+    print(encryptedMessage)
     ipByte = buildIP(message[5])
     portByte = int(message[6]).to_bytes(2, 'big')
     encryptedMessage = ipByte + portByte + encryptedMessage
+    print(encryptedMessage)
     servers = message[1].split(',')
     servers.reverse()
     serversDetails = []
@@ -47,15 +51,29 @@ def buildMessage(messageLine):
             serversDetails.append(ipsTxt[int(i) - 1])
     except:
         print("Wrong server number")
+    position = 0
     for i in servers:
         pemName = "pk" + i + ".pem"
-        pemFile = open(pemName, "r")
-        pem = pemFile.read()
-        pemFile.close()
-        key = load_pem_public_key(pem.encode(), default_backend())
-        
-    
-    
+        with open(pemName, "rb") as key_file:
+            public_key = serialization.load_pem_public_key(
+                key_file.read(),
+                backend=default_backend()
+            )
+        encryptedMessage = public_key.encrypt(
+            encryptedMessage,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+            )
+        )
+        if position != len(servers) - 1:
+            serverIpBytes = buildIP(serversDetails[position].split(' ')[0])
+            serverPortBytes = int(serversDetails[position].split(' ')[1][:-1]).to_bytes(2, 'big')
+            encryptedMessage = serverIpBytes + serverPortBytes + encryptedMessage
+        position = position + 1
+    returnItems = [serversDetails[len(serversDetails) - 1].split(' ')[0], serversDetails[len(serversDetails) - 1].split(' ')[1][:-1], encryptedMessage]
+    return returnItems
     
     """
     position = 1
@@ -79,7 +97,8 @@ def main():
     messages = file.readlines()
     file.close()
     for message in messages:
-        buildMessage(message)
+        messageParams = buildMessage(message)
+        #print(messageParams)
 
     
 
