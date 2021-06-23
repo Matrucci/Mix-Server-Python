@@ -36,7 +36,28 @@ def buildMessage(messageLine):
     portByte = int(message[6]).to_bytes(2, 'big')
     encryptedMessage = ipByte + portByte + encryptedMessage
     servers = message[1].split(',')
+    servers.reverse()
+    serversDetails = []
+    ipsFile = open("ips.txt", "r")
+    ipsTxt = ipsFile.readlines()
+    try:
+        for i in servers:
+            serversDetails.append(ipsTxt[int(i) - 1])
+    except:
+        print("Wrong server number")
     
+    
+    
+    """
+    position = 1
+    for ip in ipsTxt:
+        if str(position) in servers:
+            serversDetails.append(ip)
+        position = position + 1
+    
+    for i in range(len(servers) - 1, -1, -1):
+        print(servers[i] + ", " + serversDetails[len(serversDetails) - i - 1])
+    """
     
 
 
