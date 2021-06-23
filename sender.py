@@ -20,11 +20,25 @@ def createSemetricKey(password, salt):
     f = Fernet(key)
     return f
 
-def buildMessage(message):
+def buildIP(ip):
+    ipSplit = ip.split('.')
+    ipB = b''
+    for seg in ipSplit:
+        ipB += int(seg).to_bytes(1, 'big')
+    return ipB
+
+def buildMessage(messageLine):
+    message = messageLine.split(' ')
     semetricKey = createSemetricKey(message[3], message[4])
     messageData = message[0]
     encryptedMessage = semetricKey.encrypt(messageData.encode())
+    ipByte = buildIP(message[5])
+    portByte = int(message[6]).to_bytes(2, 'big')
+    encryptedMessage = ipByte + portByte + encryptedMessage
+    servers = message[1].split(',')
     
+    
+
 
 def main():
     if len(sys.argv) == 1:
