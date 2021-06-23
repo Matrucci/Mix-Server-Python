@@ -6,6 +6,7 @@ import os
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 def createSemetricKey(password, salt):
@@ -40,11 +41,19 @@ def buildMessage(messageLine):
     serversDetails = []
     ipsFile = open("ips.txt", "r")
     ipsTxt = ipsFile.readlines()
+    ipsFile.close()
     try:
         for i in servers:
             serversDetails.append(ipsTxt[int(i) - 1])
     except:
         print("Wrong server number")
+    for i in servers:
+        pemName = "pk" + i + ".pem"
+        pemFile = open(pemName, "r")
+        pem = pemFile.read()
+        pemFile.close()
+        key = load_pem_public_key(pem.encode(), default_backend())
+        
     
     
     
@@ -68,6 +77,7 @@ def main():
     messageFile = "messages" + x + ".txt"
     file = open(messageFile, "r")
     messages = file.readlines()
+    file.close()
     for message in messages:
         buildMessage(message)
 
