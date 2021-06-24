@@ -110,6 +110,7 @@ def sendQueueToServer(messageQueue):
 
 def main():
     if len(sys.argv) == 1:
+        print("Not enough parameters")
         return
     x = sys.argv[1]
     #Waiting a few seconds so the server would start before the program starts.
