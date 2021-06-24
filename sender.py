@@ -43,6 +43,9 @@ def buildMessage(messageLine):
     #Encrypting the original message with the semetric key.
     encryptedMessage = semetricKey.encrypt(messageData.encode())
     ipByte = buildIP(message[5])
+    #Remove the \n before continueing. 
+    if message[6][-1] == '\n':
+        message[6] = message[6][:-1]
     portByte = int(message[6]).to_bytes(2, 'big')
     #Adding the IP and port
     encryptedMessage = ipByte + portByte + encryptedMessage
@@ -94,14 +97,16 @@ def sendQueueToServer(messageQueue):
     position = 0
     while not messageQueue.empty():
         item = messageQueue.get()
-        print(item)
         if item[0] > position:
             time.sleep(60 * (item[0] - position))
             position = item[0]
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((item[1][0], int(item[1][1])))
-        s.send(item[1][2])
-        s.close()
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((item[1][0], int(item[1][1])))
+            s.send(item[1][2])
+            s.close()
+        except ConnectionError:
+            print("There was a problem connecting to server")
 
 def main():
     if len(sys.argv) == 1:
