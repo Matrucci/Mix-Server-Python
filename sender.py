@@ -3,6 +3,7 @@
 import sys
 import base64
 import socket
+import time
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -10,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from queue import PriorityQueue
 
 #Creating semetric key for encryption.
 def createSemetricKey(password, salt):
@@ -87,26 +89,37 @@ def buildMessage(messageLine):
     return returnItems
 
 #Sending a message to a server by IP and port.
-def sendToServer(ip, port, message):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((ip, int(port)))
-    s.send(message)
-    s.close()
-
+#Taking into account the round number the message should be sent in.
+def sendQueueToServer(messageQueue):
+    position = 0
+    while not messageQueue.empty():
+        item = messageQueue.get()
+        if item[0] > position:
+            time.sleep(60 * (item[0] - position))
+            position = item[0]
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((item[1][0], int(item[1][1])))
+        s.send(item[1][2])
+        s.close()
 
 def main():
     if len(sys.argv) == 1:
         return
     x = sys.argv[1]
+    #Waiting a few seconds so the server would start before the program starts.
+    time.sleep(5)
     #Opening the messages file.
     messageFile = "messages" + x + ".txt"
     file = open(messageFile, "r")
     messages = file.readlines()
     file.close()
+    messageQueue = PriorityQueue()
     #Building every message and sending to the server.
     for message in messages:
         messageParams = buildMessage(message)
-        sendToServer(messageParams[0], messageParams[1], messageParams[2])
+        messageQueue.put((int(message.split(' ')[2]), messageParams))
+    sendQueueToServer(messageQueue)
+        #sendToServer(messageParams[0], messageParams[1], messageParams[2])
 
     
 
