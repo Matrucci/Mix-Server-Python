@@ -2,7 +2,7 @@
 
 import sys
 import base64
-import os
+import socket
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -35,11 +35,9 @@ def buildMessage(messageLine):
     semetricKey = createSemetricKey(message[3], message[4])
     messageData = message[0]
     encryptedMessage = semetricKey.encrypt(messageData.encode())
-    print(encryptedMessage)
     ipByte = buildIP(message[5])
     portByte = int(message[6]).to_bytes(2, 'big')
     encryptedMessage = ipByte + portByte + encryptedMessage
-    print(encryptedMessage)
     servers = message[1].split(',')
     servers.reverse()
     serversDetails = []
@@ -67,25 +65,22 @@ def buildMessage(messageLine):
                     label=None
             )
         )
+        serverDetailsSplit = serversDetails[position].split(' ')
+        if serverDetailsSplit[1][-1] == '\n':
+            serverDetailsSplit[1] = serverDetailsSplit[1][:-1]
         if position != len(servers) - 1:
-            serverIpBytes = buildIP(serversDetails[position].split(' ')[0])
-            serverPortBytes = int(serversDetails[position].split(' ')[1][:-1]).to_bytes(2, 'big')
+            serverIpBytes = buildIP(serverDetailsSplit[0])
+            serverPortBytes = int(serverDetailsSplit[1]).to_bytes(2, 'big')
             encryptedMessage = serverIpBytes + serverPortBytes + encryptedMessage
         position = position + 1
-    returnItems = [serversDetails[len(serversDetails) - 1].split(' ')[0], serversDetails[len(serversDetails) - 1].split(' ')[1][:-1], encryptedMessage]
+    returnItems = [serverDetailsSplit[0], serverDetailsSplit[1], encryptedMessage]
     return returnItems
-    
-    """
-    position = 1
-    for ip in ipsTxt:
-        if str(position) in servers:
-            serversDetails.append(ip)
-        position = position + 1
-    
-    for i in range(len(servers) - 1, -1, -1):
-        print(servers[i] + ", " + serversDetails[len(serversDetails) - i - 1])
-    """
-    
+
+def sendToServer(ip, port, message):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((ip, int(port)))
+    s.send(message)
+    s.close()
 
 
 def main():
@@ -98,7 +93,7 @@ def main():
     file.close()
     for message in messages:
         messageParams = buildMessage(message)
-        #print(messageParams)
+        sendToServer(messageParams[0], messageParams[1], messageParams[2])
 
     
 
