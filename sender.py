@@ -94,6 +94,7 @@ def sendQueueToServer(messageQueue):
     position = 0
     while not messageQueue.empty():
         item = messageQueue.get()
+        print(item)
         if item[0] > position:
             time.sleep(60 * (item[0] - position))
             position = item[0]
