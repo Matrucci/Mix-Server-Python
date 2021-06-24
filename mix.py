@@ -2,16 +2,13 @@
 
 
 import sys
-import base64
 import socket
-import time
-from cryptography.fernet import Fernet
-from cryptography.hazmat.backends import default_backend
+import threading
+import random
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 def getPort():
     ipFile = open("ips.txt", "r")
@@ -43,13 +40,12 @@ def getDestPort(decryptedText):
     return int.from_bytes(decryptedText[4:6], byteorder='big')
 
 
-def activateServer(myPort, myPrivateKey):
+def activateServer(myPort, myPrivateKey, messages):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('0.0.0.0', myPort))
     server.listen(3000)
     BUFFER_SIZE = 4096
-    messages = []
-
+    
     while True:
         client_socket, client_addr = server.accept()
         data = client_socket.recv(BUFFER_SIZE)
@@ -68,13 +64,35 @@ def activateServer(myPort, myPrivateKey):
         client_socket.close()
 
 
+def sendToDest(messages):
+    length = len(messages)
+    maxRand = length
+    for i in range(length):
+        rand = random.randint(0, maxRand)
+        maxRand = maxRand - 1
+        message = messages[rand]
+        del messages[rand]
+        ip = message[0]
+        port = message[1]
+        content = message[2]
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, port))
+        s.send(content)
+        s.close()
+
 def main():
     if len(sys.argv) == 1:
         print("Not enough parameters")
         return
     myPort = getPort()
     myPrivateKey = getPrivateKey()
-    activateServer(myPort, myPrivateKey)
+    messages = []
+    serverThread = threading.Thread(activateServer, args=(myPort, myPrivateKey, messages,))
+    serverThread.start()
+    while True:
+        sendThread = threading.Timer(60, sendToDest, args=(messages,))
+        sendThread.start()
+
 
 if __name__ == "__main__":
     main()
