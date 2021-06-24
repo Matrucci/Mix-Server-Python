@@ -48,6 +48,7 @@ def startReceiving(port, semetricKey):
 #Main function.
 def main():
     if len(sys.argv) != 4:
+        print("Not enough parameters")
         return
     password = sys.argv[1].encode()
     salt = sys.argv[2].encode()
