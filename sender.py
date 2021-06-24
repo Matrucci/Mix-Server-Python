@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+#Creating semetric key for encryption.
 def createSemetricKey(password, salt):
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
@@ -23,6 +24,7 @@ def createSemetricKey(password, salt):
     f = Fernet(key)
     return f
 
+#Taking IP string and turning it into bytes representation.
 def buildIP(ip):
     ipSplit = ip.split('.')
     ipB = b''
@@ -30,13 +32,17 @@ def buildIP(ip):
         ipB += int(seg).to_bytes(1, 'big')
     return ipB
 
+#Taking the line from the file and turning it into a message for the server.
 def buildMessage(messageLine):
     message = messageLine.split(' ')
+    #Creating semetric key by password and salt.
     semetricKey = createSemetricKey(message[3], message[4])
     messageData = message[0]
+    #Encrypting the original message with the semetric key.
     encryptedMessage = semetricKey.encrypt(messageData.encode())
     ipByte = buildIP(message[5])
     portByte = int(message[6]).to_bytes(2, 'big')
+    #Adding the IP and port
     encryptedMessage = ipByte + portByte + encryptedMessage
     servers = message[1].split(',')
     servers.reverse()
@@ -44,11 +50,13 @@ def buildMessage(messageLine):
     ipsFile = open("ips.txt", "r")
     ipsTxt = ipsFile.readlines()
     ipsFile.close()
+    #Getting the IP and port of the servers.
     try:
         for i in servers:
             serversDetails.append(ipsTxt[int(i) - 1])
     except:
         print("Wrong server number")
+    #Using the server's public key to encrypt the message
     position = 0
     for i in servers:
         pemName = "pk" + i + ".pem"
@@ -65,6 +73,7 @@ def buildMessage(messageLine):
                     label=None
             )
         )
+        #Adding the server's IP and port
         serverDetailsSplit = serversDetails[position].split(' ')
         if serverDetailsSplit[1][-1] == '\n':
             serverDetailsSplit[1] = serverDetailsSplit[1][:-1]
@@ -73,9 +82,11 @@ def buildMessage(messageLine):
             serverPortBytes = int(serverDetailsSplit[1]).to_bytes(2, 'big')
             encryptedMessage = serverIpBytes + serverPortBytes + encryptedMessage
         position = position + 1
+    #Returning the IP and port of the last server we need to send to and the message.
     returnItems = [serverDetailsSplit[0], serverDetailsSplit[1], encryptedMessage]
     return returnItems
 
+#Sending a message to a server by IP and port.
 def sendToServer(ip, port, message):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((ip, int(port)))
@@ -87,10 +98,12 @@ def main():
     if len(sys.argv) == 1:
         return
     x = sys.argv[1]
+    #Opening the messages file.
     messageFile = "messages" + x + ".txt"
     file = open(messageFile, "r")
     messages = file.readlines()
     file.close()
+    #Building every message and sending to the server.
     for message in messages:
         messageParams = buildMessage(message)
         sendToServer(messageParams[0], messageParams[1], messageParams[2])
