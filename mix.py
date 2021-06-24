@@ -8,6 +8,7 @@ import random
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 
 def getPort():
@@ -26,6 +27,7 @@ def getPrivateKey():
         private_key = serialization.load_pem_private_key(
             key_file.read(),
             password=None,
+            backend=default_backend()
         )
     return private_key
 
@@ -45,7 +47,7 @@ def activateServer(myPort, myPrivateKey, messages):
     server.bind(('0.0.0.0', myPort))
     server.listen(3000)
     BUFFER_SIZE = 4096
-    
+
     while True:
         client_socket, client_addr = server.accept()
         data = client_socket.recv(BUFFER_SIZE)
@@ -87,7 +89,7 @@ def main():
     myPort = getPort()
     myPrivateKey = getPrivateKey()
     messages = []
-    serverThread = threading.Thread(activateServer, args=(myPort, myPrivateKey, messages,))
+    serverThread = threading.Thread(target=activateServer, args=(myPort, myPrivateKey, messages,))
     serverThread.start()
     while True:
         sendThread = threading.Timer(60, sendToDest, args=(messages,))
