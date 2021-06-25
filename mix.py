@@ -106,9 +106,9 @@ def main():
     serverThread.start()
     while True:
         #Sending all messages and waiting for the next round.
-        sendThread = threading.Thread(target=sendToDest, args=(messages,))
-        sendThread.start()
         time.sleep(60)
+        sendToDest(messages)
+        
 
 if __name__ == "__main__":
     main()
