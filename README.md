@@ -20,7 +20,7 @@ The mix server then decrypts all messages and sends them in batches (in this imp
 
 ## How to run
 
-Edit the file "messages.txt" and put your message in that format:
+Edit the file "messages1.txt" and put your message in that format:
 
 > < message > < servers numbers separated by commas > < desired round to be sent > < password > < salt > < dest IP > < dest port >
 
@@ -28,4 +28,19 @@ For example:
 
 > ddd 3,2,1 0 password password 127.0.0.1 5000
 
-Run 
+Edit the ips.txt with the IPs and ports of the server so the first line is server 1, the second line is server 2 and so on.
+
+You can also create new private keys and public keys for the servers but the repo comes with 3 private keys and public keys included for 3 servers.
+
+Running the sender:
+
+    python3 sender.py <number of the messages file, for messages1.txt enter 1>
+
+Running the server:
+
+    python3 mix.py <number of the server>
+
+Running the receiver:
+
+    python3 receiver.py <password> <salt> <port>
+
